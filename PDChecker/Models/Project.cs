@@ -1,4 +1,8 @@
-﻿namespace PDChecker.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json.Serialization;
+
+namespace PDChecker.Models;
 
 public class Project
 {
@@ -7,9 +11,19 @@ public class Project
     public string Description { get; set; }
     
     public int TeamleadId { get; set; }
+    [JsonIgnore]
     public User Teamlead { get; set; }
     
-    public string BuildUrl { get; set; }
+    public string? BuildUrl { get; set; }
+    
     
     public List<Grade> Grades { get; set; }
+
+    public Project(string name, string description, int teamleadId)
+    {
+        Name = name;
+        Description = description;
+        BuildUrl = "";
+        TeamleadId = teamleadId;
+    }
 }
