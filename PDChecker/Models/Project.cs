@@ -17,7 +17,7 @@ public class Project
     public string? BuildUrl { get; set; }
     
     
-    public List<Grade> Grades { get; set; }
+    public ICollection<Grade> Grades { get; set; }
 
     public Project(string name, string description, int teamleadId)
     {
