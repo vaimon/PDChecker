@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices.JavaScript;
@@ -6,27 +7,31 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PDChecker.Models;
 
 namespace PDChecker.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
     public class ProjectController : ControllerBase
     {
         private readonly PdDbContext _context;
+        private readonly IDataProtector _protector;
 
-        public ProjectController(PdDbContext context)
+        public ProjectController(PdDbContext context, IDataProtectionProvider provider)
         {
             _context = context;
+            _protector = provider.CreateProtector("PDChecker.IdHiding");
         }
         
         [Authorize]
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Project>> GetProject(int id)
+        [HttpGet("/projects/{publicId}")]
+        public async Task<ActionResult<Project>> GetProject(string publicId)
         {
+            var id = int.Parse(_protector.Unprotect(publicId));
             var project = await _context.Projects.FindAsync(id);
 
             if (project == null)
@@ -37,8 +42,25 @@ namespace PDChecker.Controllers
             return project;
         }
         
+        [Authorize]
+        [HttpGet("/projects/all")]
+        public async Task<ActionResult<ICollection>> GetAllProjects()
+        {
+            var projects = await _context.Projects.Include(p => p.Teamlead).ToListAsync();
+            return Ok(projects.Select(p => new
+            {
+                publicId = _protector.Protect(p.Id.ToString()),
+                name = p.Name,
+                description = p.Description,
+                buildUrl = p.BuildUrl,
+                teamlead = p.Teamlead
+            }
+                )
+            );
+        }
+        
         [Authorize(Roles="student")]
-        [HttpPost]
+        [HttpPost("/projects/add")]
         public async Task<ActionResult<Project>> CreateProject(NewProject newProject)
         {
             var identity = HttpContext.User.Identity as ClaimsIdentity;
@@ -64,9 +86,10 @@ namespace PDChecker.Controllers
         }
         
         [Authorize(Roles="student")]
-        [HttpPost("/buildurl/{projectId}")]
-        public async Task<ActionResult<Project>> AttachBuildUrl(int projectId, string url)
+        [HttpPost("/projects/buildurl/{projectPublicId}")]
+        public async Task<ActionResult<Project>> AttachBuildUrl(string projectPublicId, string url)
         {
+            var projectId = int.Parse(_protector.Unprotect(projectPublicId));
             var project = await _context.Projects.FindAsync(projectId);
             if (project == null)
             {

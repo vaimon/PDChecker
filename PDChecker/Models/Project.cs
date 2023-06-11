@@ -16,7 +16,7 @@ public class Project
     
     public string? BuildUrl { get; set; }
     
-    
+    [JsonIgnore]
     public ICollection<Grade> Grades { get; set; }
 
     public Project(string name, string description, int teamleadId)

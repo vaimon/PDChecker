@@ -1,5 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -14,10 +15,12 @@ public class AuthorizationController : Controller
 {
     private PdDbContext _context;
     private PasswordHasher<User> _passwordHasher = new();
+    private readonly IDataProtector _protector;
 
-    public AuthorizationController(PdDbContext context)
+    public AuthorizationController(PdDbContext context, IDataProtectionProvider provider)
     {
         _context = context;
+        _protector = provider.CreateProtector("PDChecker.IdHiding");
     }
     
     [HttpPost("/login")]

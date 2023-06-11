@@ -2,13 +2,13 @@
 
 public class NewGrade
 {
-    public int ProjectId { get; set; }
+    public string PublicProjectId { get; set; }
     public double Points { get; set; }
     public string Feedback { get; set; }
 
-    public NewGrade(int projectId, double points, string feedback)
+    public NewGrade(string publicProjectId, double points, string feedback)
     {
-        ProjectId = projectId;
+        PublicProjectId = publicProjectId;
         Points = points;
         Feedback = feedback;
     }
