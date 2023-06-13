@@ -114,6 +114,7 @@ public class AuthorizationController : Controller
         var response = new
         {
             access_token = encodedJwt,
+            role = user.Role,
             username = identity.Name,
         };
 
