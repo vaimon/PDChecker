@@ -29,17 +29,24 @@ namespace PDChecker.Controllers
         
         [Authorize]
         [HttpGet("/projects/{publicId}")]
-        public async Task<ActionResult<Project>> GetProject(string publicId)
+        public ActionResult<Project> GetProject(string publicId)
         {
             var id = int.Parse(_protector.Unprotect(publicId));
-            var project = await _context.Projects.FindAsync(id);
+            var project = _context.Projects.Include(p => p.Grades).FirstOrDefault(p => p.Id == id);
 
             if (project == null)
             {
                 return NotFound();
             }
 
-            return project;
+            return Ok(new
+            {
+                publicId = _protector.Protect(project.Id.ToString()),
+                name = project.Name,
+                description = project.Description,
+                grades = project.Grades,
+                buildUrl = project.BuildUrl,
+            });
         }
         
         [Authorize]
@@ -82,7 +89,42 @@ namespace PDChecker.Controllers
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProject", new {id = project.Id}, project);
+            return Ok();
+        }
+        
+        [Authorize(Roles="student")]
+        [HttpGet("/projects/get")]
+        public async Task<ActionResult<Project>> GetProject()
+        {
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+            User? user;
+            if (identity != null)
+            {
+                user = _context.Users.FirstOrDefault(u => u.Login == identity.Name);
+                if (user == null)
+                {
+                    return NotFound("User with this login not found");
+                }
+            }
+            else
+            {
+                return BadRequest("Cannot retreive information from JWT token");
+            }
+
+            var project = _context.Projects.Include(p => p.Grades).FirstOrDefault(p => p.TeamleadId == user.Id);
+            if (project == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new
+            {
+                publicId = _protector.Protect(project.Id.ToString()),
+                name = project.Name,
+                description = project.Description,
+                grades = project.Grades,
+                buildUrl = project.BuildUrl,
+            });
         }
         
         [Authorize(Roles="student")]
